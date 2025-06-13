@@ -1,0 +1,47 @@
+{
+    "manifest_version": 3,
+    "name": "Focus Blocker",
+    "version": "1.1",
+    "description": "Blocks YouTube Shorts, Facebook Watch, Instagram Reels, and Snapchat Spotlight.",
+    "permissions": ["declarativeNetRequest", "scripting"],
+    "host_permissions": [
+      "*://www.youtube.com/*",
+      "*://www.facebook.com/*",
+      "*://www.instagram.com/*",
+      "*://www.snapchat.com/*"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "declarative_net_request": {
+      "rule_resources": [
+        {
+          "id": "blockRules",
+          "enabled": true,
+          "path": "rules.json"
+        }
+      ]
+    },
+    "content_scripts": [
+      {
+        "matches": [
+          "*://www.youtube.com/*",
+          "*://www.facebook.com/*",
+          "*://www.instagram.com/*",
+          "*://www.snapchat.com/*"
+        ],
+        "js": ["content.js"],
+        "run_at": "document_idle"
+      }
+    ],
+    "web_accessible_resources": [
+      {
+        "resources": ["block.html"],
+        "matches": ["<all_urls>"]
+      }
+    ],
+    "action": {
+      "default_title": "Focus Blocker"
+    }
+  }
+  
