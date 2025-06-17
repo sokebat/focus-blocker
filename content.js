@@ -20,9 +20,14 @@ function checkAndRedirect() {
 // content.js
 
 function blockSnapchatSpotlight() {
-  const spotlightElement = document.querySelector(".swiper-watch-progress");
-  if (spotlightElement) {
-    spotlightElement.remove(); // OR use: spotlightElement.style.display = 'none';
+  const spotlightElement1 = document.querySelector(".swiper-watch-progress");
+  const spotlightElement2 = document.querySelector(".S4e9r");
+  const spotlightButton = document.querySelector(".WGPER")
+ 
+  if (spotlightElement1 || spotlightElement2 || spotlightButton) {
+    spotlightElement1.remove();
+    spotlightElement2.remove();
+    spotlightButton.remove();
     console.log("🔕 Snapchat Spotlight blocked");
   }
 }
