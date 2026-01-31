@@ -1,6 +1,6 @@
-# Focus Blocker Chrome Extension
+# PureFocus Chrome Extension
 
-A Chrome extension designed to help users maintain focus by blocking distracting short-form video content across popular social media platforms.
+A premium Chrome extension designed to help users maintain deep focus by blocking distracting content across popular social media platforms.
 
 ## Project Structure
 
@@ -28,6 +28,7 @@ focus-blocker/
 ## Technical Details
 
 ### Manifest (manifest.json)
+
 - Uses Manifest V3
 - Implements declarative network request rules
 - Includes content scripts for dynamic content monitoring
@@ -37,16 +38,19 @@ focus-blocker/
   - Host permissions for target domains
 
 ### Content Script (content.js)
+
 - Monitors URL changes in real-time
 - Implements path-based blocking logic
 - Uses MutationObserver for SPA compatibility
 - Redirects to block.html when blocked content is detected
 
 ### Block Rules (rules.json)
+
 - Contains declarative network request rules
 - Enables efficient content blocking at the network level
 
 ### Block Page (block.html)
+
 - Custom page shown when blocked content is accessed
 - Accessible as a web resource
 
@@ -60,6 +64,7 @@ focus-blocker/
 ## Usage
 
 Once installed, the extension will automatically:
+
 - Block access to short-form video content on supported platforms
 - Redirect to a block page when attempting to access blocked content
 - Work seamlessly with both traditional and single-page applications
@@ -67,8 +72,7 @@ Once installed, the extension will automatically:
 ## Development
 
 The extension is built using:
+
 - Chrome Extension Manifest V3
 - JavaScript for content scripts
 - Declarative Network Request API for efficient blocking
-
- 

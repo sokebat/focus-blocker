@@ -1,57 +1,167 @@
-const blockedPaths = [
-  { domain: "youtube.com", path: "/shorts" },
-  { domain: "facebook.com", path: "/watch" },
-  { domain: "facebook.com", path: "/reel" },
-  { domain: "instagram.com", path: "/reels" },
-  { domain: "snapchat.com", path: "/spotlight" },
-];
+/**
+ * CLEAN & SCALABLE CONTENT SCRIPT FOR PUREFOCUS
+ * Handles element hiding via CSS injection and powerful redirects.
+ */
 
-function checkAndRedirect() {
-  const { hostname, pathname } = window.location;
+const CONFIG = {
+  facebook: {
+    domain: "facebook.com",
+    elements: {
+      fb_reels: [
+        '[aria-label="Reels"]',
+        'a[href*="/reels/"]',
+        'a[href*="/reel/"]',
+        'a[href*="/watch/"]',
+        'div[aria-label="Reels tray"]',
+        '[data-pagelet="Reels"]',
+      ],
+      fb_marketplace: [
+        '[aria-label="Marketplace"]',
+        'a[href*="/marketplace/"]',
+      ],
+    },
+    redirects: [
+      { path: "/reels", setting: "fb_reels" },
+      { path: "/reel", setting: "fb_reels" },
+      { path: "/watch", setting: "fb_reels" },
+      { path: "/", exact: true, setting: "fb_feed" }, // Full redirect for home page
+    ],
+  },
+  youtube: {
+    domain: "youtube.com",
+    elements: {
+      yt_shorts: {
+        selectors: [
+          'ytd-guide-entry-renderer:has(a[href="/shorts"])',
+          'ytd-mini-guide-entry-renderer:has(a[href="/shorts"])',
+          "#shorts-container",
+          "ytd-reel-shelf-renderer",
+          'a[href^="/shorts"]',
+        ],
+      },
+      yt_recommended: {
+        selectors: [
+          "#related",
+          "ytd-watch-next-secondary-results-renderer",
+          'ytd-browse[page-subtype="home"] #contents',
+        ],
+      },
+    },
+    redirects: [{ path: "/shorts", setting: "yt_shorts" }],
+  },
+  instagram: {
+    domain: "instagram.com",
+    elements: {
+      ig_reels: [
+        'a[href*="/reels/"]',
+        'a[href*="/reels/videos/"]',
+        'svg[aria-label="Reels"]',
+      ],
+    },
+    redirects: [{ path: "/reels", setting: "ig_reels" }],
+  },
+};
 
-  for (const block of blockedPaths) {
-    if (hostname.includes(block.domain) && pathname.startsWith(block.path)) {
-      window.location.href = chrome.runtime.getURL("block.html");
-      break;
+let userSettings = {};
+let injectedStyleElement = null;
+
+/**
+ * Loads settings from storage
+ */
+async function loadSettings() {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get(null, (settings) => {
+      userSettings = settings;
+      resolve(settings);
+    });
+  });
+}
+
+/**
+ * Injects CSS to hide elements instantly
+ */
+function updateInjectedStyles() {
+  const hostname = window.location.hostname;
+  let css = "";
+
+  for (const [platform, data] of Object.entries(CONFIG)) {
+    if (hostname.includes(data.domain)) {
+      if (data.elements) {
+        for (const [setting, config] of Object.entries(data.elements)) {
+          if (userSettings[setting]) {
+            const selectors = Array.isArray(config) ? config : config.selectors;
+            selectors.forEach((selector) => {
+              css += `${selector} { display: none !important; }\n`;
+            });
+          }
+        }
+      }
     }
   }
-}
 
-// content.js
-
-function blockSnapchatSpotlight() {
-  const spotlightElement1 = document.querySelector(".swiper-watch-progress");
-  const spotlightElement2 = document.querySelector(".S4e9r");
-  const spotlightButton = document.querySelector(".WGPER")
- 
-  if (spotlightElement1 || spotlightElement2 || spotlightButton) {
-    spotlightElement1.remove();
-    spotlightElement2.remove();
-    spotlightButton.remove();
-    console.log("🔕 Snapchat Spotlight blocked");
+  if (!injectedStyleElement) {
+    injectedStyleElement = document.createElement("style");
+    injectedStyleElement.id = "pure-focus-dynamic-styles";
+    (document.head || document.documentElement).appendChild(
+      injectedStyleElement,
+    );
   }
+  injectedStyleElement.textContent = css;
 }
 
-// Check repeatedly in case it's loaded dynamically
-if (window.location.hostname.includes("snapchat.com")) {
-  const intervalId = setInterval(() => {
-    blockSnapchatSpotlight();
-  }, 1000); // check every second for new loads
+/**
+ * Handles redirects based on settings and path
+ */
+function handleRedirects() {
+  const hostname = window.location.hostname;
+  const pathname = window.location.pathname;
 
-  // Optional: stop after 10 seconds
-  setTimeout(() => clearInterval(intervalId), 10000);
+  for (const [platform, data] of Object.entries(CONFIG)) {
+    if (hostname.includes(data.domain) && data.redirects) {
+      for (const rule of data.redirects) {
+        if (userSettings[rule.setting]) {
+          const isMatch = rule.exact
+            ? pathname === rule.path
+            : pathname.startsWith(rule.path);
+          if (isMatch) {
+            window.location.replace(chrome.runtime.getURL("block.html"));
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
 }
 
-// Run immediately
-checkAndRedirect();
+/**
+ * Main initialization
+ */
+async function init() {
+  await loadSettings();
 
-// Also monitor changes for SPA sites (like YouTube)
-let lastPath = location.pathname;
-const observer = new MutationObserver(() => {
-  if (location.pathname !== lastPath) {
-    lastPath = location.pathname;
-    checkAndRedirect();
+  if (handleRedirects()) return;
+
+  updateInjectedStyles();
+
+  // Monitor for navigation in SPAs
+  let lastPath = location.pathname;
+  setInterval(() => {
+    if (location.pathname !== lastPath) {
+      lastPath = location.pathname;
+      if (handleRedirects()) return;
+      updateInjectedStyles();
+    }
+  }, 500);
+}
+
+// Listen for settings changes from popup
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === "SETTINGS_CHANGED") {
+    userSettings = { ...userSettings, ...message.settings };
+    updateInjectedStyles();
+    handleRedirects();
   }
 });
 
-observer.observe(document.body, { childList: true, subtree: true });
+init();

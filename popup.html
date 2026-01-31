@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PureFocus Settings</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary: #6366f1;
+        --primary-hover: #4f46e5;
+        --bg: #0f172a;
+        --card-bg: rgba(30, 41, 59, 0.7);
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --border: rgba(255, 255, 255, 0.1);
+        --accent: #10b981;
+      }
+
+      body {
+        font-family: "Outfit", sans-serif;
+        background-color: var(--bg);
+        color: var(--text-main);
+        margin: 0;
+        padding: 16px;
+        width: 320px;
+        user-select: none;
+        overflow-x: hidden;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      .logo {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, var(--primary), #a855f7);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+      }
+
+      .logo svg {
+        width: 18px;
+        height: 18px;
+        fill: white;
+      }
+
+      h1 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+        background: linear-gradient(to right, #fff, #94a3b8);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .section {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 12px;
+        backdrop-filter: blur(10px);
+      }
+
+      .section-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .option {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .option:last-child {
+        border-bottom: none;
+      }
+
+      .option-info {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .option-label {
+        font-size: 0.9rem;
+        font-weight: 400;
+      }
+
+      .option-desc {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+      }
+
+      /* Switch toggle */
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 36px;
+        height: 20px;
+      }
+
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #334155;
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 20px;
+      }
+
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 14px;
+        width: 14px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 50%;
+      }
+
+      input:checked + .slider {
+        background-color: var(--primary);
+      }
+
+      input:checked + .slider:before {
+        transform: translateX(16px);
+      }
+
+      .footer {
+        text-align: center;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        margin-top: 16px;
+      }
+
+      .footer a {
+        color: var(--primary);
+        text-decoration: none;
+      }
+
+      .badge {
+        background: rgba(99, 102, 241, 0.1);
+        color: var(--primary);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.65rem;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="logo">
+        <svg viewBox="0 0 24 24">
+          <path
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"
+          />
+        </svg>
+      </div>
+      <h1>PureFocus</h1>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <span>Facebook</span>
+        <span class="badge">Social</span>
+      </div>
+      <div class="option">
+        <div class="option-info">
+          <span class="option-label">Hide News Feed</span>
+          <span class="option-desc">Stay away from the scroll</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="fb_feed" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="option">
+        <div class="option-info">
+          <span class="option-label">Hide Reels & Watch</span>
+          <span class="option-desc">Block short and long-form videos</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="fb_reels" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="option">
+        <div class="option-info">
+          <span class="option-label">Hide Marketplace</span>
+          <span class="option-desc">Reduce shopping distractions</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="fb_marketplace" />
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <span>YouTube</span>
+        <span class="badge">Video</span>
+      </div>
+      <div class="option">
+        <div class="option-info">
+          <span class="option-label">Block Shorts</span>
+          <span class="option-desc">Redirect shorts to focus page</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="yt_shorts" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="option">
+        <div class="option-info">
+          <span class="option-label">Hide Recommended</span>
+          <span class="option-desc">Clean up the sidebar</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="yt_recommended" />
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <span>Instagram</span>
+        <span class="badge">Social</span>
+      </div>
+      <div class="option">
+        <div class="option-info">
+          <span class="option-label">Block Reels</span>
+          <span class="option-desc">Direct redirect for reels</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="ig_reels" />
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="footer">
+      Push your productivity to the limit.<br />
+      Version 1.2 • Built with ❤️
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
