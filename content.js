@@ -17,15 +17,18 @@ const CONFIG = {
       ],
       fb_reels: [
         '[aria-label="Reels"]',
-        'a[href*="/reels/"]',
+        '[aria-label="Watch"]',
+        'a[href*="/reels"]',
         'a[href*="/reel/"]',
-        'a[href*="/watch/"]',
+        'a[href*="/watch"]',
         'div[aria-label="Reels tray"]',
-        '[data-pagelet="Reels"]',
+        '[data-pagelet*="Reels"]',
+        '[data-pagelet*="Watch"]',
       ],
       fb_marketplace: [
         '[aria-label="Marketplace"]',
-        'a[href*="/marketplace/"]',
+        'a[href*="/marketplace"]',
+        '[data-pagelet*="Marketplace"]',
       ],
     },
     redirects: [
@@ -43,6 +46,15 @@ const CONFIG = {
           'ytd-mini-guide-entry-renderer:has(a[href="/shorts"])',
           "#shorts-container",
           "ytd-reel-shelf-renderer",
+          "ytd-rich-shelf-renderer[is-shorts]",
+          "grid-shelf-view-model",
+          "ytm-shorts-lockup-view-model",
+          "ytm-shorts-lockup-view-model-v2",
+          'a[title="Shorts"]',
+          'ytd-rich-item-renderer:has(a[href^="/shorts"])',
+          'ytd-video-renderer:has(a[href^="/shorts"])',
+          'ytd-compact-video-renderer:has(a[href^="/shorts"])',
+          'yt-chip-cloud-chip-renderer:has(a[href^="/shorts"])',
           'a[href^="/shorts"]',
         ],
       },
@@ -51,6 +63,11 @@ const CONFIG = {
           "#related",
           "ytd-watch-next-secondary-results-renderer",
           'ytd-browse[page-subtype="home"] #contents',
+          'ytd-browse[page-subtype="home"] ytd-rich-grid-renderer',
+          "ytd-watch-flexy #secondary",
+          ".ytp-endscreen-content",
+          ".ytp-ce-element",
+          ".ytp-suggestion-set",
         ],
       },
     },
@@ -60,15 +77,17 @@ const CONFIG = {
     domain: "instagram.com",
     elements: {
       ig_reels: [
-        'a[href*="/reels/"]',
-        'a[href*="/reels/videos/"]',
+        'a[href*="/reels"]',
+        'a[href*="/reel/"]',
+        'a[href^="/explore"]',
+        'a[aria-label="Reels"]',
+        'a[aria-label="Explore"]',
         'svg[aria-label="Reels"]',
-        'a[href="/explore/"]',
-        'a[href^="/explore/"]',
+        'svg[aria-label="Explore"]',
       ],
     },
     redirects: [
-      { path: "/reels", setting: "ig_reels" },
+      { path: "/reel", setting: "ig_reels" }, // covers /reel/ and /reels
       { path: "/explore", setting: "ig_reels" },
     ],
   },
@@ -241,6 +260,14 @@ function currentRestriction() {
         return rule;
       }
     }
+  }
+  // Instagram serves reels under /p/<id>/ too: treat any video post as a reel
+  if (
+    hostname.includes("instagram.com") &&
+    pathname.startsWith("/p/") &&
+    document.querySelector("video")
+  ) {
+    return { path: "/p/", setting: "ig_reels" };
   }
   return null;
 }
@@ -536,6 +563,14 @@ function handleRedirects() {
       }
     }
   }
+  const rule = currentRestriction();
+  if (rule && rule.path === "/p/" && isEnabled(rule.setting)) {
+    const blockUrl = new URL(chrome.runtime.getURL("block.html"));
+    blockUrl.searchParams.set("return", window.location.href);
+    blockUrl.searchParams.set("setting", rule.setting);
+    window.location.replace(blockUrl.toString());
+    return true;
+  }
   return false;
 }
 
@@ -560,6 +595,9 @@ async function init() {
       lastPath = location.pathname;
       if (handleRedirects()) return;
       updateInjectedStyles();
+    } else if (location.pathname.startsWith("/p/")) {
+      // the post's video loads a moment after the URL changes
+      handleRedirects();
     }
   }, 500);
 }
