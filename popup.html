@@ -183,6 +183,9 @@
       .timer-input { display:flex; align-items:center; gap:8px; margin-top:4px; }
       .timer-input input[type=range] { flex:1; accent-color: var(--primary); }
       .timer-val { font-size:0.85rem; min-width:56px; text-align:right; }
+      .timer-stats { display:flex; gap:12px; margin-top:10px; }
+      .timer-stats > div { flex:1; background:rgba(255,255,255,0.04); border-radius:8px; padding:8px; text-align:center; display:flex; flex-direction:column; }
+      .stat-num { font-size:1.1rem; font-weight:600; }
       .timer-status { font-size:0.7rem; color: var(--text-muted); margin-top:8px; }
       .timer-status.over { color:#f87171; }
     </style>
@@ -205,11 +208,15 @@
         <span class="badge">Max 1h 30m</span>
       </div>
       <div class="option-desc">
-        Allow yourself this much time per day across Facebook, YouTube Shorts and Instagram. When it runs out, everything is blocked until tomorrow. Off = always blocked.
+        Your total daily allowance across Facebook, YouTube Shorts and Instagram. Toggle a block off to watch; the time you spend on those pages counts against it. When it runs out, everything stays blocked until tomorrow.
       </div>
       <div class="timer-input">
         <input type="range" id="time_limit_min" min="0" max="90" step="5" />
         <span class="timer-val" id="time_limit_val">Off</span>
+      </div>
+      <div class="timer-stats">
+        <div><span class="stat-num" id="used_val">0m</span><span class="option-desc">Used today</span></div>
+        <div><span class="stat-num" id="left_val">-</span><span class="option-desc">Remaining</span></div>
       </div>
       <div class="timer-status" id="timer_status"></div>
     </div>
@@ -285,8 +292,8 @@
       </div>
       <div class="option">
         <div class="option-info">
-          <span class="option-label">Block Reels</span>
-          <span class="option-desc">Direct redirect for reels</span>
+          <span class="option-label">Block Reels & Explore</span>
+          <span class="option-desc">Redirect reels and explore</span>
         </div>
         <label class="switch">
           <input type="checkbox" id="ig_reels" />

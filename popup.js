@@ -61,22 +61,52 @@ document.addEventListener("DOMContentLoaded", () => {
   const fmt = (m) =>
     m <= 0 ? "Off" : m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ""}` : `${m}m`;
 
+  const fmtMs = (ms) => {
+    const m = Math.floor(ms / 60000);
+    const s = Math.floor((ms % 60000) / 1000);
+    return m >= 60 ? fmt(m) : m > 0 ? `${m}m ${s}s` : `${s}s`;
+  };
+
   function renderStatus() {
-    chrome.storage.local.get(["usage_date", "usage_ms"], (r) => {
-      const limit = Number(slider.value);
-      if (limit <= 0) {
-        statusEl.textContent = "Timer off — blocks always active.";
+    chrome.storage.local.get(
+      ["usage_date", "usage_ms", "break_until", "session_ms", "snooze_all"],
+      (r) => {
+        const limit = Number(slider.value);
+        const used =
+          r.usage_date === new Date().toDateString() ? r.usage_ms || 0 : 0;
+        document.getElementById("used_val").textContent = fmtMs(used);
+        const leftEl = document.getElementById("left_val");
+        const breakLeft = (r.break_until || 0) - Date.now();
         statusEl.classList.remove("over");
-        return;
-      }
-      const used =
-        r.usage_date === new Date().toDateString() ? r.usage_ms || 0 : 0;
-      const left = Math.max(limit * 60000 - used, 0);
-      const mins = Math.ceil(left / 60000);
-      statusEl.textContent =
-        left > 0 ? `${fmt(mins)} left today` : "Time's up — blocked until tomorrow";
-      statusEl.classList.toggle("over", left <= 0);
-    });
+        const left0 = limit * 60000 - used;
+        const isLocked = breakLeft > 0 || (limit > 0 && left0 <= 0);
+        document
+          .querySelectorAll('input[type="checkbox"]')
+          .forEach((el) => {
+            el.disabled = isLocked;
+            if (isLocked && el !== slider) el.checked = true;
+          });
+        slider.disabled = isLocked;
+        if (breakLeft > 0) {
+          statusEl.textContent = `Break in progress: ${fmtMs(breakLeft)} left`;
+          statusEl.classList.add("over");
+        } else if (limit <= 0) {
+          statusEl.textContent = "Timer off — blocks always active.";
+        } else {
+          statusEl.textContent = "After 15 min of continuous use you get a forced 30 min break.";
+        }
+        if (limit <= 0) {
+          leftEl.textContent = "-";
+          return;
+        }
+        const left = Math.max(limit * 60000 - used, 0);
+        leftEl.textContent = fmtMs(left);
+        if (left <= 0 && breakLeft <= 0) {
+          statusEl.textContent = "Time's up — blocked until tomorrow";
+          statusEl.classList.add("over");
+        }
+      },
+    );
   }
 
   chrome.storage.sync.get("time_limit_min", (r) => {
@@ -89,5 +119,6 @@ document.addEventListener("DOMContentLoaded", () => {
     valEl.textContent = fmt(v);
     chrome.storage.sync.set({ time_limit_min: v }, renderStatus);
   });
-  setInterval(renderStatus, 2000);
+  setInterval(renderStatus, 1000);
+  chrome.storage.onChanged.addListener(renderStatus);
 });
