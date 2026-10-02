@@ -64,17 +64,143 @@ const CONFIG = {
 
 let userSettings = {};
 let injectedStyleElement = null;
+let snoozeTimer = null;
+
+function snoozeKey(setting) {
+  return `snooze_${setting}`;
+}
+
+const MAX_LIMIT_MIN = 90;
+const FLUSH_MS = 5000;
+let pendingMs = 0;
+
+function today() {
+  return new Date().toDateString();
+}
+
+/** Daily watch-time budget in ms (0 = no budget, always block). Capped at 90 min. */
+function budgetMs() {
+  const min = Number(userSettings.time_limit_min) || 0;
+  return Math.min(Math.max(min, 0), MAX_LIMIT_MIN) * 60 * 1000;
+}
+
+function usedMs() {
+  const stored =
+    userSettings.usage_date === today() ? userSettings.usage_ms || 0 : 0;
+  return stored + pendingMs;
+}
+
+function budgetExhausted() {
+  return budgetMs() > 0 && usedMs() >= budgetMs();
+}
 
 /**
- * Loads settings from storage
+ * Whether a given setting is currently unblocked: either the daily budget
+ * still has time left, or (with no budget set) a snooze is active.
+ * Once the budget is used up, nothing is unblocked for the rest of the day.
+ */
+function isSnoozed(setting) {
+  if (budgetMs() > 0) return !budgetExhausted();
+  const until = userSettings[snoozeKey(setting)];
+  return typeof until === "number" && Date.now() < until;
+}
+
+function anyBlockEnabledHere() {
+  const hostname = window.location.hostname;
+  return Object.values(CONFIG).some(
+    (data) =>
+      hostname.includes(data.domain) &&
+      [
+        ...Object.keys(data.elements || {}),
+        ...(data.redirects || []).map((r) => r.setting),
+      ].some((k) => userSettings[k]),
+  );
+}
+
+/** Adds elapsed watch time to today's total in local storage. */
+function flushUsage() {
+  if (!pendingMs) return;
+  const delta = pendingMs;
+  pendingMs = 0;
+  chrome.storage.local.get(["usage_date", "usage_ms"], (r) => {
+    const base = r.usage_date === today() ? r.usage_ms || 0 : 0;
+    chrome.storage.local.set({ usage_date: today(), usage_ms: base + delta });
+  });
+}
+
+function startUsageTimer() {
+  let lastTick = Date.now();
+  let lastFlush = Date.now();
+  setInterval(() => {
+    const now = Date.now();
+    const elapsed = Math.min(now - lastTick, 2000);
+    lastTick = now;
+
+    const counting =
+      budgetMs() > 0 &&
+      !budgetExhausted() &&
+      document.visibilityState === "visible" &&
+      anyBlockEnabledHere();
+    if (counting) pendingMs += elapsed;
+
+    if (budgetMs() > 0 && budgetExhausted() && !blockedAfterBudget) {
+      blockedAfterBudget = true;
+      flushUsage();
+      if (handleRedirects()) return;
+      updateInjectedStyles();
+    }
+    if (now - lastFlush >= FLUSH_MS) {
+      lastFlush = now;
+      flushUsage();
+    }
+  }, 1000);
+}
+
+let blockedAfterBudget = false;
+
+/**
+ * Schedules a re-check for the moment the soonest active snooze expires,
+ * so blocking resumes automatically without waiting for navigation/polling.
+ */
+function scheduleSnoozeExpiry() {
+  if (snoozeTimer) {
+    clearTimeout(snoozeTimer);
+    snoozeTimer = null;
+  }
+
+  const now = Date.now();
+  let nextExpiry = Infinity;
+  for (const key in userSettings) {
+    if (key.startsWith("snooze_")) {
+      const until = userSettings[key];
+      if (typeof until === "number" && until > now && until < nextExpiry) {
+        nextExpiry = until;
+      }
+    }
+  }
+
+  if (nextExpiry !== Infinity) {
+    snoozeTimer = setTimeout(async () => {
+      await loadSettings();
+      if (handleRedirects()) return;
+      updateInjectedStyles();
+      scheduleSnoozeExpiry();
+    }, nextExpiry - now + 250);
+  }
+}
+
+/**
+ * Loads settings from storage.
+ * Toggle settings live in sync storage; temporary snooze timers live in
+ * local storage since they're ephemeral and shouldn't sync across devices.
  */
 async function loadSettings() {
-  return new Promise((resolve) => {
-    chrome.storage.sync.get(null, (settings) => {
-      userSettings = settings;
-      resolve(settings);
-    });
-  });
+  const [syncSettings, localSettings] = await Promise.all([
+    new Promise((resolve) => chrome.storage.sync.get(null, resolve)),
+    new Promise((resolve) => chrome.storage.local.get(null, resolve)),
+  ]);
+  userSettings = { ...syncSettings, ...localSettings };
+  return userSettings;
 }
 
 /**
@@ -88,7 +214,7 @@ function updateInjectedStyles() {
     if (hostname.includes(data.domain)) {
       if (data.elements) {
         for (const [setting, config] of Object.entries(data.elements)) {
-          if (userSettings[setting]) {
+          if (userSettings[setting] && !isSnoozed(setting)) {
             const selectors = Array.isArray(config) ? config : config.selectors;
             selectors.forEach((selector) => {
               css += `${selector} { display: none !important; }\n`;
@@ -119,12 +245,15 @@ function handleRedirects() {
   for (const [platform, data] of Object.entries(CONFIG)) {
     if (hostname.includes(data.domain) && data.redirects) {
       for (const rule of data.redirects) {
-        if (userSettings[rule.setting]) {
+        if (userSettings[rule.setting] && !isSnoozed(rule.setting)) {
           const isMatch = rule.exact
             ? pathname === rule.path
             : pathname.startsWith(rule.path);
           if (isMatch) {
-            window.location.replace(chrome.runtime.getURL("block.html"));
+            const blockUrl = new URL(chrome.runtime.getURL("block.html"));
+            blockUrl.searchParams.set("return", window.location.href);
+            blockUrl.searchParams.set("setting", rule.setting);
+            window.location.replace(blockUrl.toString());
             return true;
           }
         }
@@ -143,6 +272,9 @@ async function init() {
   if (handleRedirects()) return;
 
   updateInjectedStyles();
+  scheduleSnoozeExpiry();
+  blockedAfterBudget = budgetExhausted();
+  startUsageTimer();
 
   // Monitor for navigation in SPAs
   let lastPath = location.pathname;
@@ -161,6 +293,21 @@ chrome.runtime.onMessage.addListener((message) => {
     userSettings = { ...userSettings, ...message.settings };
     updateInjectedStyles();
     handleRedirects();
+  }
+});
+
+// Keep limit/usage in sync across tabs and with the popup
+chrome.storage.onChanged.addListener((changes, area) => {
+  let touched = false;
+  for (const [k, c] of Object.entries(changes)) {
+    if (k === "time_limit_min" || k.startsWith("usage_") || k.startsWith("snooze_")) {
+      userSettings[k] = c.newValue;
+      touched = true;
+    }
+  }
+  if (touched) {
+    blockedAfterBudget = budgetExhausted();
+    if (!handleRedirects()) updateInjectedStyles();
   }
 });
 

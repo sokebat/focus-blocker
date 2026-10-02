@@ -203,6 +203,26 @@ h1 {
   box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
 }
 
+.btn-secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  margin-top: -12px;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+}
+
 .quote {
   font-size: 0.875rem;
   font-style: italic;

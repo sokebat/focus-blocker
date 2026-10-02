@@ -179,6 +179,12 @@
         font-size: 0.65rem;
         font-weight: 600;
       }
+
+      .timer-input { display:flex; align-items:center; gap:8px; margin-top:4px; }
+      .timer-input input[type=range] { flex:1; accent-color: var(--primary); }
+      .timer-val { font-size:0.85rem; min-width:56px; text-align:right; }
+      .timer-status { font-size:0.7rem; color: var(--text-muted); margin-top:8px; }
+      .timer-status.over { color:#f87171; }
     </style>
   </head>
   <body>
@@ -191,6 +197,21 @@
         </svg>
       </div>
       <h1>PureFocus</h1>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <span>Daily Watch Timer</span>
+        <span class="badge">Max 1h 30m</span>
+      </div>
+      <div class="option-desc">
+        Allow yourself this much time per day across Facebook, YouTube Shorts and Instagram. When it runs out, everything is blocked until tomorrow. Off = always blocked.
+      </div>
+      <div class="timer-input">
+        <input type="range" id="time_limit_min" min="0" max="90" step="5" />
+        <span class="timer-val" id="time_limit_val">Off</span>
+      </div>
+      <div class="timer-status" id="timer_status"></div>
     </div>
 
     <div class="section">

@@ -11,7 +11,17 @@
     "*://*.snapchat.com/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "purefocus@nyvotech2.com",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
   },
   "declarative_net_request": {
     "rule_resources": [
@@ -36,7 +46,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["block.html", "style.css"],
+      "resources": ["block.html", "style.css", "block.js"],
       "matches": ["<all_urls>"]
     }
   ],
