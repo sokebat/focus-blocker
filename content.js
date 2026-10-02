@@ -7,12 +7,13 @@ const CONFIG = {
   facebook: {
     domain: "facebook.com",
     elements: {
+      // Only active on the home page (html[data-pf-home] is set in updateInjectedStyles)
       fb_feed: [
-        'div[role="feed"]',
-        '[data-pagelet="MainFeed"]',
-        '[data-pagelet^="FeedUnit"]',
-        '[data-pagelet="Stories"]',
-        '[aria-label="Stories"]',
+        'html[data-pf-home] [role="main"]',
+        "html[data-pf-home] [aria-posinset]",
+        'html[data-pf-home] [role="feed"]',
+        'html[data-pf-home] [data-pagelet*="Feed"]',
+        'html[data-pf-home] [data-pagelet="Stories"]',
       ],
       fb_reels: [
         '[aria-label="Reels"]',
@@ -473,6 +474,12 @@ async function loadSettings() {
  */
 function updateInjectedStyles() {
   const hostname = window.location.hostname;
+  const root = document.documentElement;
+  if (hostname.includes("facebook.com") && window.location.pathname === "/") {
+    root.setAttribute("data-pf-home", "");
+  } else {
+    root.removeAttribute("data-pf-home");
+  }
   let css = "";
   if (isExemptPath()) {
     if (injectedStyleElement) injectedStyleElement.textContent = "";
